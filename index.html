@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>معرفة لون البكسل</title>
+<title>معرفة اللون</title>
 
 <style>
     #canvas {
@@ -20,24 +20,20 @@
         border-radius: 6px;
         display: none;
         pointer-events: none;
-        z-index: 9999;
-        white-space: nowrap;
         font-size: 14px;
+        white-space: nowrap;
+        z-index: 9999;
     }
 </style>
+
 </head>
 <body>
 
 <h2>تطبيق معرفة لون البكسل</h2>
 
 <input type="file" id="upload" accept="image/*">
-
 <canvas id="canvas"></canvas>
-
 <div id="hoverColor"></div>
-
-<!-- مكتبة أسماء الألوان -->
-<script src="https://rawcdn.githack.com/colorjs/ntc/master/ntc.js"></script>
 
 <script src="script.js"></script>
 
