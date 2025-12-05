@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>معرفة لون البكسل</title>
+<title>معرفة لون البكسل بالعربية</title>
 <style>
 body {
     font-family: Arial, sans-serif;
@@ -33,7 +33,7 @@ body {
 </head>
 <body>
 
-<h2>تطبيق معرفة لون البكسل</h2>
+<h2>تطبيق معرفة لون البكسل بالعربية</h2>
 <input type="file" id="upload" accept="image/*">
 <canvas id="canvas"></canvas>
 <div id="hoverColor"></div>
@@ -73,8 +73,59 @@ function rgbToHex(r, g, b) {
         .toString(16).slice(1).toUpperCase();
 }
 
-// دالة رئيسية لعرض اللون
-function showColor(e) {
+// خريطة ألوان شائعة مع ترجمتها العربية
+const colorsMap = [
+    {hex:"000000", en:"Black", ar:"أسود"},
+    {hex:"FFFFFF", en:"White", ar:"أبيض"},
+    {hex:"FF0000", en:"Red", ar:"أحمر"},
+    {hex:"00FF00", en:"Lime", ar:"أخضر فاقع"},
+    {hex:"0000FF", en:"Blue", ar:"أزرق"},
+    {hex:"FFFF00", en:"Yellow", ar:"أصفر"},
+    {hex:"FFA500", en:"Orange", ar:"برتقالي"},
+    {hex:"800080", en:"Purple", ar:"أرجواني"},
+    {hex:"00FFFF", en:"Cyan", ar:"سماوي"},
+    {hex:"FFC0CB", en:"Pink", ar:"وردي"},
+    {hex:"808080", en:"Gray", ar:"رمادي"},
+    {hex:"A52A2A", en:"Brown", ar:"بني"},
+    {hex:"008000", en:"Green", ar:"أخضر"},
+    {hex:"ADD8E6", en:"Light Blue", ar:"أزرق فاتح"},
+    {hex:"800000", en:"Maroon", ar:"خمري"},
+    {hex:"FF00FF", en:"Magenta", ar:"فوشي"},
+    {hex:"808000", en:"Olive", ar:"زيتي"},
+    {hex:"000080", en:"Navy", ar:"كحلي"},
+    {hex:"3C341C", en:"Dark Brown", ar:"بني غامق"},
+    {hex:"D2B48C", en:"Tan", ar:"أسمر فاتح"},
+    {hex:"F5F5DC", en:"Beige", ar:"بيج"},
+    {hex:"696969", en:"Dim Gray", ar:"رمادي داكن"},
+    {hex:"C0C0C0", en:"Silver", ar:"فضي"}
+    // يمكن إضافة المزيد لاحقًا
+];
+
+// دالة لإيجاد أقرب لون
+function findClosestColor(hex) {
+    let r = parseInt(hex.substring(0,2),16);
+    let g = parseInt(hex.substring(2,4),16);
+    let b = parseInt(hex.substring(4,6),16);
+
+    let minDiff = Infinity;
+    let closest = colorsMap[0];
+
+    for(let c of colorsMap){
+        let cr = parseInt(c.hex.substring(0,2),16);
+        let cg = parseInt(c.hex.substring(2,4),16);
+        let cb = parseInt(c.hex.substring(4,6),16);
+
+        let diff = Math.sqrt((r-cr)**2 + (g-cg)**2 + (b-cb)**2);
+        if(diff < minDiff){
+            minDiff = diff;
+            closest = c;
+        }
+    }
+    return closest;
+}
+
+// دالة عرض اللون
+function showColor(e){
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
@@ -83,14 +134,14 @@ function showColor(e) {
     const y = Math.floor((e.clientY - rect.top) * scaleY);
 
     let pixel;
-    try {
-        pixel = ctx.getImageData(x, y, 1, 1).data;
-    } catch {
-        return;
-    }
+    try{
+        pixel = ctx.getImageData(x,y,1,1).data;
+    }catch{return;}
 
-    const [r, g, b] = pixel;
-    const hex = rgbToHex(r, g, b);
+    const [r,g,b] = pixel;
+    const hex = rgbToHex(r,g,b);
+
+    const closest = findClosestColor(hex);
 
     hoverColor.style.display = "block";
     hoverColor.style.left = (e.clientX + 20) + "px";
@@ -100,7 +151,7 @@ function showColor(e) {
         <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:22px;height:22px;background:#${hex};border:1px solid #000;border-radius:3px;"></div>
             <div>
-                <b>Color</b><br>
+                <b>${closest.ar}</b> (${closest.en})<br>
                 #${hex}
             </div>
         </div>
