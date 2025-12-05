@@ -6,27 +6,22 @@
 <title>معرفة لون البكسل</title>
 
 <style>
-    body { font-family: Arial; padding:20px; }
-
     #canvas {
         border:1px solid #ccc;
-        max-width:100%;
         display:block;
         margin-top:15px;
     }
 
-    /* فقاعة اللون بجانب الفأرة */
     #hoverColor {
-        position: absolute;
+        position: fixed;
         background: rgba(0,0,0,0.75);
-        color: #fff;
-        padding: 8px 12px;
-        border-radius: 6px;
-        display: none;
-        pointer-events: none;
-        font-size: 14px;
-        white-space: nowrap;
-        z-index: 9999;
+        color:#fff;
+        padding:8px 12px;
+        border-radius:6px;
+        display:none;
+        pointer-events:none;
+        z-index:99999;
+        white-space:nowrap;
     }
 </style>
 </head>
