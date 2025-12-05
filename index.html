@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لعبة المنصات المتصفح</title>
+    <title>لعبة المنصات المتصفح - إصلاح</title>
     <style>
         /* توسيط اللعبة */
         body {
@@ -14,46 +14,41 @@
             margin: 0;
             background-color: #f0f0f0;
             font-family: sans-serif;
+            flex-direction: column; /* للسماح بظهور التعليمات */
         }
         /* تصميم شاشة اللعب */
         canvas {
             border: 2px solid #333;
             background-color: #87ceeb; /* سماء زرقاء */
         }
+        #instructions {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333;
+        }
     </style>
 </head>
 <body>
 
 <canvas id="gameCanvas" width="800" height="400"></canvas>
+<div id="instructions">
+    للتحكم: **الأسهم** أو **A/D** للحركة. **المسافة** أو **السهم العلوي** للقفز.
+</div>
 
 <script>
-// --- إعدادات اللعبة ---
+// --- 1. الإعدادات والثوابت العالمية ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width;
 const H = canvas.height;
 
-// إعدادات اللاعب
-let player = {
-    x: 50,
-    y: H - 50,
-    width: 30,
-    height: 30,
-    color: 'blue',
-    velX: 0,
-    velY: 0,
-    speed: 3,
-    jumpStrength: -10,
-    isJumping: false,
-    onGround: false
-};
-
+const PLAYER_SIZE = 30;
 const gravity = 0.6;
 const friction = 0.8;
 
-// --- نظام المراحل والمنصات (تدرج الصعوبة) ---
+// --- 2. تعريف بيانات اللعبة (المراحل) ---
 const LEVEL_DATA = {
-    1: { // سهل
+    1: { // سهل: منصات قليلة، لا أعداء
         platforms: [
             { x: 0, y: H - 20, w: W, h: 20, color: 'green' }, // الأرضية
             { x: 150, y: H - 80, w: 100, h: 20, color: 'green' },
@@ -63,7 +58,7 @@ const LEVEL_DATA = {
         goalX: W - 40,
         message: "المرحلة 1: ابدأ بالقفز (مسافة قصيرة)"
     },
-    2: { // متوسط
+    2: { // متوسط: منصات أكثر صعوبة، عدو واحد بطيء
         platforms: [
             { x: 0, y: H - 20, w: W, h: 20, color: 'green' },
             { x: 80, y: H - 100, w: 80, h: 20, color: 'green' },
@@ -71,29 +66,49 @@ const LEVEL_DATA = {
             { x: 550, y: H - 250, w: 100, h: 20, color: 'green' }
         ],
         enemies: [
-            { x: 500, y: H - 45, w: 20, h: 20, color: 'red', speed: 1, range: 100, startX: 500 }
+            { x: 500, y: H - 45, w: 20, h: 20, color: 'red', speed: 1.5, range: 100, startX: 500 }
         ],
         goalX: W - 40,
         message: "المرحلة 2: احذر العدو المتحرك!"
-    }
-    // يمكن إضافة المزيد من المراحل هنا
+    },
+    3: { // صعب: منصات متفرقة، عدوان أسرع
+        platforms: [
+            { x: 0, y: H - 20, w: W, h: 20, color: 'green' },
+            { x: 50, y: H - 80, w: 50, h: 20, color: 'green' },
+            { x: 250, y: H - 150, w: 50, h: 20, color: 'green' },
+            { x: 450, y: H - 220, w: 50, h: 20, color: 'green' },
+            { x: 650, y: H - 150, w: 50, h: 20, color: 'green' },
+        ],
+        enemies: [
+            { x: 50, y: H - 45, w: 20, h: 20, color: 'red', speed: 3, range: 300, startX: 50 },
+            { x: 550, y: H - 45, w: 20, h: 20, color: 'red', speed: 2, range: 200, startX: 550 },
+        ],
+        goalX: W - 40,
+        message: "المرحلة 3: تحدي القفز الدقيق!"
+    },
 };
 
-let currentLevel = 1;
+// --- 3. المتغيرات الديناميكية (الحالة) ---
+let player = {}; // سيتم تهيئته في init
 let platforms = [];
 let enemies = [];
-let goalX = W - 40;
+let currentLevel = 1;
+let goalX = 0;
 let keys = {};
 let gameActive = true;
 
-// --- وظائف اللعبة ---
+// --- 4. وظائف التحكم باللعبة ---
 
 function loadLevel(levelNum) {
     const level = LEVEL_DATA[levelNum] || LEVEL_DATA[1];
     platforms = level.platforms;
     
     // إعداد الأعداء (نسخ البيانات لتكون مستقلة)
-    enemies = level.enemies.map(e => ({ ...e, x: e.startX, direction: 1 }));
+    enemies = level.enemies.map(e => ({ 
+        ...e, 
+        x: e.startX, // البدء من الموضع الأولي
+        direction: 1 // البدء بالحركة يميناً
+    }));
     
     goalX = level.goalX;
     
@@ -110,13 +125,9 @@ function loadLevel(levelNum) {
 function update() {
     if (!gameActive) return;
 
-    // 1. حركة اللاعب
-    
-    // تطبيق الاحتكاك والجاذبية
+    // 1. حركة اللاعب والجاذبية
     player.velX *= friction;
     player.velY += gravity;
-
-    // الحد الأقصى للسرعة العمودية
     if (player.velY > 15) player.velY = 15;
 
     // التحكم الأفقي
@@ -140,12 +151,99 @@ function update() {
     // 2. فحص الاصطدام بالمنصات
     player.onGround = false;
     platforms.forEach(p => {
-        // فحص الاصطدام (بسيط)
         if (
             player.x < p.x + p.w &&
             player.x + player.width > p.x &&
             player.y + player.height > p.y &&
             player.y < p.y + p.h
         ) {
-            // الاصطدام العمودي (السقوط على المنصة)
-            if (player.velY > 0
+            // الاصطدام من الأسفل (الوقوف)
+            if (player.velY > 0 && player.y + player.height - player.velY <= p.y) {
+                player.y = p.y - player.height;
+                player.velY = 0;
+                player.onGround = true;
+            // الاصطدام من الأعلى (ارتطام الرأس)
+            } else if (player.velY < 0 && player.y - player.velY >= p.y + p.h) {
+                player.y = p.y + p.h;
+                player.velY = 0;
+            }
+            // الاصطدام الأفقي
+            else if (player.velX !== 0) {
+                if (player.x < p.x) player.x = p.x - player.width;
+                else player.x = p.x + p.w;
+                player.velX = 0;
+            }
+        }
+    });
+
+    // 3. تحديث الأعداء وفحص الاصطدام بالعدو
+    enemies.forEach(e => {
+        e.x += e.speed * e.direction;
+        
+        // تغيير الاتجاه
+        if (e.x >= e.startX + e.range - e.w) e.direction = -1;
+        if (e.x <= e.startX) e.direction = 1;
+
+        // فحص الاصطدام بالعدو
+        if (
+            player.x < e.x + e.w &&
+            player.x + player.width > e.x &&
+            player.y < e.y + e.h &&
+            player.y + player.height > e.y
+        ) {
+            // اصطدام اللاعب بالعدو
+            if (player.velY > 0 && player.y + player.height - player.velY <= e.y) {
+                 // القفز على العدو (قتل العدو)
+                 e.y = -100; // إزالة العدو من الشاشة
+                 player.velY = player.jumpStrength * 0.5; // قفزة ارتدادية صغيرة
+            } else {
+                endGame("انتهت اللعبة! اصطدمت بالعدو.");
+            }
+        }
+    });
+
+    // 4. فحص الخسارة (السقوط)
+    if (player.y > H) {
+        endGame("انتهت اللعبة! سقطت.");
+    }
+    
+    // 5. فحص الفوز والانتقال للمرحلة
+    if (player.x >= goalX) {
+        if (currentLevel < Object.keys(LEVEL_DATA).length) {
+            currentLevel++;
+            loadLevel(currentLevel);
+        } else {
+            endGame("تهانينا! لقد أكملت جميع المراحل وفزت!");
+        }
+    }
+    
+    draw();
+    requestAnimationFrame(update);
+}
+
+function draw() {
+    // مسح الشاشة (السماء)
+    ctx.fillStyle = '#87ceeb';
+    ctx.fillRect(0, 0, W, H);
+
+    // رسم المنصات
+    platforms.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+    });
+
+    // رسم الأعداء
+    enemies.forEach(e => {
+        if (e.y >= 0) { // لرسم الأعداء الأحياء فقط
+            ctx.fillStyle = e.color;
+            ctx.fillRect(e.x, e.y, e.w, e.h);
+        }
+    });
+
+    // رسم اللاعب
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+    
+    // رسم الهدف (مربع النهاية)
+    ctx.fillStyle = 'orange';
+    ctx.fillRect(goalX, H - 60, 10, 40);
