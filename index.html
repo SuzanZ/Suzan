@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الراصد الصغير: قياس الحرارة</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>🌡️ قياس درجة الحرارة</h1>
+        <p>كم هي درجة الحرارة التي تراها في الترمومتر؟</p>
+        
+        <div class="thermometer-display">
+            <div class="thermometer-body">
+                <div id="mercury" class="mercury"></div>
+            </div>
+            <div class="thermometer-bulb"></div>
+        </div>
+
+        <div class="input-area">
+            <label for="temp-input">درجة الحرارة المتوقعة (مئوية):</label>
+            <input type="number" id="temp-input" min="-10" max="50">
+            <button onclick="checkAnswer()">تأكيد الإجابة</button>
+        </div>
+
+        <p id="feedback" class="feedback"></p>
+        <p id="score-display">النقاط: 0</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
