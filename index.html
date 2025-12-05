@@ -1,80 +1,239 @@
-using UnityEngine;
+import pygame
+import sys
 
-public class Collectable : MonoBehaviour
-{
-    // متغير لتحديد قيمة هذا العنصر في اللعبة
-    [Header("قيمة العنصر")]
-    public int scoreValue = 10;
+# --- 1. الإعدادات والثوابت ---
+pygame.init()
+
+# إعدادات الشاشة
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("لعبة المنصات البسيطة (ماريو ستايل)")
+CLOCK = pygame.time.Clock()
+
+# الألوان
+WHITE = (255, 255, 255)
+BLUE = (0, 100, 255)
+GREEN = (50, 150, 50)
+RED = (200, 50, 50)
+
+# إعدادات الحركة والفيزياء
+PLAYER_SIZE = 30
+PLAYER_SPEED = 5
+JUMP_STRENGTH = -17
+GRAVITY = 1
+FPS = 60
+
+# --- 2. تعريف فئات الكائنات (Sprites) ---
+
+class Player(pygame.sprite.Sprite):
+    """يمثل اللاعب المتحكم به"""
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface([PLAYER_SIZE, PLAYER_SIZE])
+        self.image.fill(BLUE)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.vel_y = 0
+        self.on_ground = False
+        self.platforms = None # مجموعة المنصات للمقارنة
+
+    def update(self):
+        """تحديث حركة اللاعب والفيزياء"""
+        # تطبيق الجاذبية
+        self.vel_y += GRAVITY
+        # الحد من السرعة العمودية (لتجنب اختراق المنصات)
+        if self.vel_y > 15:
+            self.vel_y = 15
+            
+        self.rect.y += self.vel_y
+        
+        # التحكم في الحركة الأفقية
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.rect.x -= PLAYER_SPEED
+        if keys[pygame.K_RIGHT]:
+            self.rect.x += PLAYER_SPEED
+            
+        # فحص الاصطدام بالمنصات
+        self.check_collision_y()
+
+    def check_collision_y(self):
+        """التعامل مع الاصطدام العمودي بالمنصات"""
+        self.on_ground = False
+        for platform in self.platforms:
+            if self.rect.colliderect(platform.rect):
+                # الاصطدام من الأسفل (السقوط على المنصة)
+                if self.vel_y > 0 and self.rect.bottom > platform.rect.top:
+                    self.rect.bottom = platform.rect.top
+                    self.vel_y = 0
+                    self.on_ground = True
+                # الاصطدام من الأعلى (الارتطام بسقف منصة)
+                elif self.vel_y < 0 and self.rect.top < platform.rect.bottom:
+                    self.rect.top = platform.rect.bottom
+                    self.vel_y = 0
+
+    def jump(self):
+        """القفز، مسموح به فقط عند الوقوف على الأرض"""
+        if self.on_ground:
+            self.vel_y = JUMP_STRENGTH
+
+class Platform(pygame.sprite.Sprite):
+    """تمثل منصة ثابتة"""
+    def __init__(self, x, y, w, h):
+        super().__init__()
+        self.image = pygame.Surface([w, h])
+        self.image.fill(GREEN)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+class Enemy(pygame.sprite.Sprite):
+    """يمثل عدو يتحرك أفقياً"""
+    def __init__(self, x, y, speed, move_range):
+        super().__init__()
+        self.image = pygame.Surface([20, 20])
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.speed = speed
+        self.start_x = x
+        self.direction = 1 # 1 right, -1 left
+        self.move_range = move_range
+
+    def update(self):
+        """تحديث حركة العدو"""
+        self.rect.x += self.speed * self.direction
+        
+        # تغيير الاتجاه عند الوصول إلى حدود نطاق الحركة
+        if self.direction == 1 and self.rect.right > self.start_x + self.move_range:
+            self.direction = -1
+        elif self.direction == -1 and self.rect.left < self.start_x:
+            self.direction = 1
+
+# --- 3. نظام المراحل وتدرج الصعوبة ---
+
+# تعريف البيانات لكل مرحلة (تزداد الصعوبة بزيادة عدد الأعداء وسرعتهم وتشتت المنصات)
+LEVEL_DATA = {
+    1: { # سهولة: منصات قليلة، لا أعداء
+        "platforms": [
+            (0, SCREEN_HEIGHT - 40, SCREEN_WIDTH, 40), 
+            (150, 450, 100, 20),
+            (550, 350, 150, 20),
+        ],
+        "enemies": [],
+        "goal_x": 750
+    },
+    2: { # متوسط: منصات أكثر صعوبة، عدو واحد بطيء
+        "platforms": [
+            (0, SCREEN_HEIGHT - 40, SCREEN_WIDTH, 40),
+            (100, 450, 80, 20),
+            (350, 300, 60, 20), 
+            (600, 150, 100, 20),
+        ],
+        "enemies": [
+            (500, SCREEN_HEIGHT - 60, 2, 200), # x, y, speed, range
+        ],
+        "goal_x": 750
+    },
+    3: { # صعب: منصات متفرقة، عدوان أسرع
+        "platforms": [
+            (0, SCREEN_HEIGHT - 40, SCREEN_WIDTH, 40),
+            (50, 450, 50, 20),
+            (250, 350, 50, 20),
+            (450, 250, 50, 20),
+            (650, 150, 50, 20),
+        ],
+        "enemies": [
+            (50, SCREEN_HEIGHT - 60, 4, 300),
+            (550, SCREEN_HEIGHT - 60, 3, 200),
+        ],
+        "goal_x": 750
+    },
+}
+
+def load_level(level_num):
+    """تحميل كائنات المرحلة المحددة"""
+    level_info = LEVEL_DATA.get(level_num, LEVEL_DATA[1])
     
-    // متغير لتحديد نوع المكافأة (نقاط، صحة، قوة خاصة)
-    public enum CollectableType { Food, Health, PowerUp, Poison }
-    public CollectableType type;
+    platforms = pygame.sprite.Group()
+    for plat_data in level_info["platforms"]:
+        platforms.add(Platform(*plat_data))
+        
+    enemies = pygame.sprite.Group()
+    for enemy_data in level_info["enemies"]:
+        enemies.add(Enemy(*enemy_data))
+        
+    # إنشاء اللاعب وإعطائه مرجع لمجموعة المنصات
+    player = Player(50, SCREEN_HEIGHT - 70) 
+    player.platforms = platforms
+    
+    # مجموعة الكائنات الشاملة للرسم
+    all_sprites = pygame.sprite.Group(player, platforms, enemies)
+    
+    return player, platforms, enemies, all_sprites, level_info["goal_x"]
 
-    // يتم استدعاء هذه الدالة عندما يصطدم جسم آخر به
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        // 1. **التحقق من هوية اللاعب:**
-        // نتأكد أن الجسم الذي اصطدم بالعنصر هو القطة (اللاعب)
-        if (other.CompareTag("Player"))
-        {
-            // 2. **استدعاء مدير اللعبة لتحديث النتيجة والصحة:**
+# --- 4. حلقة اللعبة الرئيسية ---
+
+def main_game_loop():
+    """حلقة اللعبة الرئيسية التي تدير منطق اللعب"""
+    
+    current_level = 1
+    
+    # تحميل المرحلة الأولى
+    player, platforms, enemies, all_sprites, goal_x = load_level(current_level)
+    game_running = True
+
+    while game_running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    player.jump()
+
+        # 1. تحديث الكائنات
+        player.update()
+        enemies.update()
+        
+        # 2. فحص الخسارة (السقوط أو الاصطدام بالعدو)
+        
+        # فحص السقوط خارج الشاشة
+        if player.rect.top > SCREEN_HEIGHT:
+            print("انتهت اللعبة! سقطت.")
+            game_running = False
             
-            // اعتمادًا على نوع العنصر، نحدث حالة اللعبة:
-            switch (type)
-            {
-                case CollectableType.Food:
-                    // استدعاء دالة تحديث النتيجة في GameManager
-                    GameManager.instance.AddScore(scoreValue);
-                    Debug.Log("تم جمع طعام! النتيجة الحالية: " + GameManager.instance.CurrentScore);
-                    break;
-                case CollectableType.PowerUp:
-                    // استدعاء دالة لتشغيل قوة خاصة في PlayerController
-                    other.GetComponent<PlayerController>().ActivatePowerUp();
-                    Debug.Log("تم تفعيل قوة خاصة!");
-                    break;
-                case CollectableType.Poison:
-                    // استدعاء دالة لإنقاص صحة اللاعب (عنصر إثارة ومخاطرة)
-                    GameManager.instance.TakeDamage(1); 
-                    Debug.Log("عنصر سام! خسرت نقطة صحة.");
-                    break;
-            }
+        # فحص الاصطدام بالعدو
+        if pygame.sprite.spritecollideany(player, enemies):
+            print("انتهت اللعبة! اصطدمت بالعدو.")
+            game_running = False 
 
-            // 3. **إخفاء/حذف العنصر بعد تجميعه**
-            Destroy(gameObject);
-        }
-    }
-}
-using UnityEngine;
+        # 3. فحص الفوز والانتقال للمرحلة التالية
+        if player.rect.right >= goal_x:
+            current_level += 1
+            if current_level > len(LEVEL_DATA):
+                print("تهانينا، لقد أكملت جميع المراحل وفزت!")
+                game_running = False
+            else:
+                # تحميل المرحلة الجديدة
+                player, platforms, enemies, all_sprites, goal_x = load_level(current_level)
+                print(f"انتقال إلى المرحلة {current_level}...")
 
-public class Obstacle : MonoBehaviour
-{
-    [Header("إعدادات الخطر")]
-    public int damageAmount = 1;     // كمية الضرر التي تسببها العقبة
-    public bool isInstantKill = false; // هل تؤدي إلى نهاية اللعبة فوراً؟
+        # 4. الرسم
+        SCREEN.fill(WHITE)
+        all_sprites.draw(SCREEN)
+        
+        # رسم نقطة الهدف (اختياري، كإشارة للاعب)
+        pygame.draw.rect(SCREEN, (0, 255, 0), (goal_x, SCREEN_HEIGHT - 40, 5, 40))
 
-    // يتم استدعاء هذه الدالة عند تلامس العقبة مع جسم آخر
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        // 1. **التحقق من هوية اللاعب:**
-        if (collision.gameObject.CompareTag("Player"))
-        {
-            // 2. **تطبيق الضرر بناءً على نوع العقبة:**
-            
-            if (isInstantKill)
-            {
-                // إذا كانت العقبة تؤدي لقتل فوري (مثلاً السقوط في بئر)
-                GameManager.instance.GameOver(); 
-                Debug.Log("نهاية اللعبة! اصطدام مميت.");
-            }
-            else
-            {
-                // تطبيق ضرر عادي (مثلاً لمسة من الكلب)
-                GameManager.instance.TakeDamage(damageAmount);
-                Debug.Log("اصطدام! خسرت صحة.");
-                
-                // إضافة رد فعل للاعب (مثل دفعة للخلف أو وميض)
-                // هنا يمكنك إضافة كود يجعل القطة ترتد للخلف قليلاً
-            }
-        }
-    }
-}
+        # تحديث العرض
+        pygame.display.flip()
+        
+        # تحديد الإطار في الثانية
+        CLOCK.tick(FPS)
+
+if __name__ == "__main__":
+    main_game_loop()
