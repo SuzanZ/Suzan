@@ -1,33 +1,80 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الراصد الصغير: قياس الحرارة</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="game-container">
-        <h1>🌡️ قياس درجة الحرارة</h1>
-        <p>كم هي درجة الحرارة التي تراها في الترمومتر؟</p>
-        
-        <div class="thermometer-display">
-            <div class="thermometer-body">
-                <div id="mercury" class="mercury"></div>
-            </div>
-            <div class="thermometer-bulb"></div>
-        </div>
+using UnityEngine;
 
-        <div class="input-area">
-            <label for="temp-input">درجة الحرارة المتوقعة (مئوية):</label>
-            <input type="number" id="temp-input" min="-10" max="50">
-            <button onclick="checkAnswer()">تأكيد الإجابة</button>
-        </div>
+public class Collectable : MonoBehaviour
+{
+    // متغير لتحديد قيمة هذا العنصر في اللعبة
+    [Header("قيمة العنصر")]
+    public int scoreValue = 10;
+    
+    // متغير لتحديد نوع المكافأة (نقاط، صحة، قوة خاصة)
+    public enum CollectableType { Food, Health, PowerUp, Poison }
+    public CollectableType type;
 
-        <p id="feedback" class="feedback"></p>
-        <p id="score-display">النقاط: 0</p>
-    </div>
+    // يتم استدعاء هذه الدالة عندما يصطدم جسم آخر به
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        // 1. **التحقق من هوية اللاعب:**
+        // نتأكد أن الجسم الذي اصطدم بالعنصر هو القطة (اللاعب)
+        if (other.CompareTag("Player"))
+        {
+            // 2. **استدعاء مدير اللعبة لتحديث النتيجة والصحة:**
+            
+            // اعتمادًا على نوع العنصر، نحدث حالة اللعبة:
+            switch (type)
+            {
+                case CollectableType.Food:
+                    // استدعاء دالة تحديث النتيجة في GameManager
+                    GameManager.instance.AddScore(scoreValue);
+                    Debug.Log("تم جمع طعام! النتيجة الحالية: " + GameManager.instance.CurrentScore);
+                    break;
+                case CollectableType.PowerUp:
+                    // استدعاء دالة لتشغيل قوة خاصة في PlayerController
+                    other.GetComponent<PlayerController>().ActivatePowerUp();
+                    Debug.Log("تم تفعيل قوة خاصة!");
+                    break;
+                case CollectableType.Poison:
+                    // استدعاء دالة لإنقاص صحة اللاعب (عنصر إثارة ومخاطرة)
+                    GameManager.instance.TakeDamage(1); 
+                    Debug.Log("عنصر سام! خسرت نقطة صحة.");
+                    break;
+            }
 
-    <script src="script.js"></script>
-</body>
-</html>
+            // 3. **إخفاء/حذف العنصر بعد تجميعه**
+            Destroy(gameObject);
+        }
+    }
+}
+using UnityEngine;
+
+public class Obstacle : MonoBehaviour
+{
+    [Header("إعدادات الخطر")]
+    public int damageAmount = 1;     // كمية الضرر التي تسببها العقبة
+    public bool isInstantKill = false; // هل تؤدي إلى نهاية اللعبة فوراً؟
+
+    // يتم استدعاء هذه الدالة عند تلامس العقبة مع جسم آخر
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // 1. **التحقق من هوية اللاعب:**
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            // 2. **تطبيق الضرر بناءً على نوع العقبة:**
+            
+            if (isInstantKill)
+            {
+                // إذا كانت العقبة تؤدي لقتل فوري (مثلاً السقوط في بئر)
+                GameManager.instance.GameOver(); 
+                Debug.Log("نهاية اللعبة! اصطدام مميت.");
+            }
+            else
+            {
+                // تطبيق ضرر عادي (مثلاً لمسة من الكلب)
+                GameManager.instance.TakeDamage(damageAmount);
+                Debug.Log("اصطدام! خسرت صحة.");
+                
+                // إضافة رد فعل للاعب (مثل دفعة للخلف أو وميض)
+                // هنا يمكنك إضافة كود يجعل القطة ترتد للخلف قليلاً
+            }
+        }
+    }
+}
