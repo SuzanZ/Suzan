@@ -3,13 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>معرفة اللون</title>
+<title>تطبيق معرفة لون البكسل</title>
 
 <style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+    }
+
     #canvas {
         border: 1px solid #ccc;
         display: block;
         margin-top: 15px;
+        max-width: 100%;
     }
 
     #hoverColor {
@@ -25,16 +31,20 @@
         z-index: 9999;
     }
 </style>
-
 </head>
 <body>
 
 <h2>تطبيق معرفة لون البكسل</h2>
 
 <input type="file" id="upload" accept="image/*">
+
 <canvas id="canvas"></canvas>
 <div id="hoverColor"></div>
 
+<!-- مكتبة ntc.js الأصلية (1400+ لون) -->
+<script src="https://rawcdn.githack.com/insignificantbit/ntc/master/ntc.js"></script>
+
+<!-- كود التطبيق -->
 <script src="script.js"></script>
 
 </body>
