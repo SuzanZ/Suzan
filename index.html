@@ -7,27 +7,28 @@
 
 <style>
     #canvas {
-        border:1px solid #ccc;
-        display:block;
-        margin-top:15px;
+        border: 1px solid #ccc;
+        display: block;
+        margin-top: 15px;
     }
 
     #hoverColor {
         position: fixed;
-        background: rgba(0,0,0,0.75);
-        color:#fff;
-        padding:8px 12px;
-        border-radius:6px;
-        display:none;
-        pointer-events:none;
-        z-index:99999;
-        white-space:nowrap;
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        display: none;
+        pointer-events: none;
+        z-index: 9999;
+        white-space: nowrap;
+        font-size: 14px;
     }
 </style>
 </head>
 <body>
 
-<h2>تطبيق معرفة اللون</h2>
+<h2>تطبيق معرفة لون البكسل</h2>
 
 <input type="file" id="upload" accept="image/*">
 
@@ -35,7 +36,7 @@
 
 <div id="hoverColor"></div>
 
-<!-- مكتبة أسماء الألوان (مضمونة) -->
+<!-- مكتبة أسماء الألوان -->
 <script src="https://rawcdn.githack.com/colorjs/ntc/master/ntc.js"></script>
 
 <script src="script.js"></script>
