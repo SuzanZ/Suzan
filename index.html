@@ -3,49 +3,110 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تطبيق معرفة لون البكسل</title>
-
+<title>معرفة لون البكسل</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-    }
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
 
-    #canvas {
-        border: 1px solid #ccc;
-        display: block;
-        margin-top: 15px;
-        max-width: 100%;
-    }
+#canvas {
+    border: 1px solid #ccc;
+    display: block;
+    margin-top: 15px;
+    max-width: 100%;
+}
 
-    #hoverColor {
-        position: fixed;
-        background: rgba(0,0,0,0.8);
-        color: #fff;
-        padding: 8px 12px;
-        border-radius: 6px;
-        display: none;
-        pointer-events: none;
-        font-size: 14px;
-        white-space: nowrap;
-        z-index: 9999;
-    }
+#hoverColor {
+    position: fixed;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: none;
+    pointer-events: none;
+    font-size: 14px;
+    white-space: nowrap;
+    z-index: 9999;
+}
 </style>
 </head>
 <body>
 
 <h2>تطبيق معرفة لون البكسل</h2>
-
 <input type="file" id="upload" accept="image/*">
-
 <canvas id="canvas"></canvas>
 <div id="hoverColor"></div>
 
-<!-- مكتبة ntc.js الأصلية (1400+ لون) -->
-<script src="https://rawcdn.githack.com/insignificantbit/ntc/master/ntc.js"></script>
+<script>
+// عناصر الصفحة
+const upload = document.getElementById("upload");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const hoverColor = document.getElementById("hoverColor");
+let img = new Image();
 
-<!-- كود التطبيق -->
-<script src="script.js"></script>
+// رفع الصورة
+upload.addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        img.onload = function() {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+});
+
+// متابعة مؤشر الفأرة
+canvas.addEventListener("mousemove", e => showColor(e));
+canvas.addEventListener("mouseleave", () => hoverColor.style.display = "none");
+
+// تحويل RGB إلى HEX
+function rgbToHex(r, g, b) {
+    return ((1 << 24) + (r << 16) + (g << 8) + b)
+        .toString(16).slice(1).toUpperCase();
+}
+
+// دالة رئيسية لعرض اللون
+function showColor(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = Math.floor((e.clientX - rect.left) * scaleX);
+    const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+    let pixel;
+    try {
+        pixel = ctx.getImageData(x, y, 1, 1).data;
+    } catch {
+        return;
+    }
+
+    const [r, g, b] = pixel;
+    const hex = rgbToHex(r, g, b);
+
+    hoverColor.style.display = "block";
+    hoverColor.style.left = (e.clientX + 20) + "px";
+    hoverColor.style.top = (e.clientY + 20) + "px";
+
+    hoverColor.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:22px;height:22px;background:#${hex};border:1px solid #000;border-radius:3px;"></div>
+            <div>
+                <b>Color</b><br>
+                #${hex}
+            </div>
+        </div>
+    `;
+}
+</script>
 
 </body>
 </html>
